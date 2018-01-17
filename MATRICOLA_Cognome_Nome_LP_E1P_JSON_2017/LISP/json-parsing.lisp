@@ -92,7 +92,9 @@
                             (analyze-payload accum)))
               (json-members e)))
      ((eql i '#\[)
-             (collectarray list nil before))           
+      (collectarray list nil before))
+     ((eql i '#\{)    
+      (collectobj list nil before))
      ((and (null e) (not (eql i '#\})))
       (error "~%MISSING LAST PARENTHESIS"))
      (T (json-pair-comma (rest list) before (consend i accum))))))
@@ -114,6 +116,12 @@
     (cond ((eql i '#\])
            (json-pair-comma (rest list) before (consend i accum)))           
           (T (collectarray (rest list) (consend i accum) before)))))
+
+(defun collectobj (list &optional (accum nil) (before nil))
+  (let ((i (first list)))
+    (cond ((eql i '#\})
+           (json-pair-comma (rest list) before (consend i accum)))           
+          (T (collectobj (rest list) (consend i accum) before)))))
 
 ;; Parse a number
 (defun json-numbers (list &optional (accum nil))

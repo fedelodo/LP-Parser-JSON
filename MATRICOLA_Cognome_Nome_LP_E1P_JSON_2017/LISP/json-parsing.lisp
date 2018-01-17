@@ -71,7 +71,7 @@
      (T (error "~%MALFORMED OBJECT")))))
 
 ;; Parse all pairs of a JSON object 
-(defun json-pair (list accum)
+(defun json-pair (list &optional (accum nil))
   (let ((i (first list)))
     (cond ((and (member i *apix*) (eql (cadr list) '#\:))
            (json-pair-comma (rest (rest list)) 
@@ -91,10 +91,8 @@
       (append (list (append (analyze-payload before)
                             (analyze-payload accum)))
               (json-members e)))
-     ((eql i '#\[)       
-      (append (list (append (analyze-payload before)
-                            (analyze-payload accum)))
-              (json-elements-nested list)))
+     ((eql i '#\[)
+             (collectarray list nil before))           
      ((and (null e) (not (eql i '#\})))
       (error "~%MISSING LAST PARENTHESIS"))
      (T (json-pair-comma (rest list) before (consend i accum))))))
@@ -102,11 +100,20 @@
 ;; Fids the type of the value (number, string, object or array)
 (defun analyze-payload (list)
   (let ((i (first list)))
-    (cond ((member i *apix*) (list (json-string list)))
+    (cond ((eql i '#\') (list (json-string-single (rest list))))
+          ((eql i '#\") (list (json-string-double (rest list))))
           ((or (member i *digits*) (member i *symbols*)) 
            (list (json-numbers list)))
           ((or (eql i '#\[) (eql i '#\{)) 
            (list (json-parser list))))))
+
+
+;collect array content
+(defun collectarray (list &optional (accum nil) (before nil))
+  (let ((i (first list)))
+    (cond ((eql i '#\])
+           (json-pair-comma (rest list) before (consend i accum)))           
+          (T (collectarray (rest list) (consend i accum) before)))))
 
 ;; Parse a number
 (defun json-numbers (list &optional (accum nil))
@@ -122,14 +129,25 @@
   (parse-float (coerce (append accum list) 'string)))
 
 ;; Parse a string, contained in ' or "
-(defun json-string (list)
-  (let ((i (first list)) (e (endlist list)))
+(defun json-string-single (list &optional accum)
+  (let ((i (first list)))
     (cond
-     ((and (eql i '#\") (eql e '#\")) 
-      (coerce (rest-but-last list) 'string))
-     ((and (eql i '#\') (eql e '#\')) 
-      (coerce (rest-but-last list) 'string))
-     (T (error  "~% MISMATCHED APIX")))))
+     ((eql i '#\')
+      (coerce accum 'string)) 
+     ((eql i '#\")
+      (error  "~% MISMATCHED APIX"))
+     (T (json-string-single (rest list) 
+                     (consend i accum))))))
+
+(defun json-string-double (list &optional accum)
+  (let ((i (first list)))
+    (cond
+     ((eql i '#\")
+      (coerce accum 'string)) 
+     ((eql i '#\')
+      (error  "~% MISMATCHED APIX"))
+     (T (json-string-double (rest list) 
+                     (consend i accum))))))
 
 ;; Parse a JSON array
 (defun json-array (list)
@@ -158,7 +176,7 @@
     (cond
      ((or (eql i '#\}) (eql i '#\]))
       (append (list (json-parser (consend i accum)))
-              (json-elements (rest list))))
+              (json-elements (rest(rest list)))))
      (T (json-elements-nested e (consend i accum))))))
 
 ;; Parse a JSON from a list of chars
@@ -266,7 +284,7 @@
   (cond 
    ((eql 'json-array (first list)) 
     (search-index (rest list) index))
-   ((null list) (error "not found"))
+   ((null list) (error "CAN'T FIND INDEX"))
    ((eq index 0) (car list))
    (T (search-index (cdr list) (- index 1)))))
 

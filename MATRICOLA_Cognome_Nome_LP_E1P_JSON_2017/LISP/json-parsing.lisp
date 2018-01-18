@@ -28,29 +28,19 @@
   (first (reverse list)))
 
 ;; Delete all whitespaces
-(defun del-whitespaces (l)
-  (let ((ch (car l)))
-    (cond ((or (eql ch #\Space)
-               (eql ch #\Newline)
-               (eql ch #\Tab)) (del-whitespaces (cdr l)))
-          ((null ch) nil)
-          ((or (eql ch #\")
-               (eql ch #\'))
-           (cons ch
-                 (del-whitespaces-i (cdr l))))
-          (T (cons ch (del-whitespaces (cdr l)))))))
-
-(defun del-whitespaces-i (l)
-  (let ((ch (car l)))
-    (cond ((null ch) nil)
-          ((eql ch #\\)
-           (cons (car l)
-                 (cons (second l) 
-                       (del-whitespaces-i (cdr (cdr l))))))
-          ((or (eql ch #\")
-               (eql ch #\')) (cons ch 
-                                   (del-whitespaces (cdr l))))
-          (T (cons ch (del-whitespaces-i (cdr l)))))))
+(defun uglify (list instring)
+  (if (null list) list
+    (let ((current (first list))
+          (next (rest list)))
+      (if (null instring)
+          (cond ((member current *apix*)
+                 (append (list current) (uglify next T)))
+                ((member current *spaces*)
+                 (uglify next nil))
+                (T (append (list current) (uglify next nil))))
+        (if (member current *apix*)
+            (append (list current) (uglify next nil))
+          (append (list current) (uglify next T)))))))
 
 ;; Parse a json object
 (defun json-object (list)
@@ -198,7 +188,7 @@
 ;; Main function to parse a JSON from string
 (defun json-parse (json)
   (let ((list (string2list json)))
-    (json-parser (del-whitespaces list))))
+    (json-parser (uglify list nil))))
 
 ;; Load strings from file and parse JSON
 (defun json-load (filename)
@@ -295,6 +285,4 @@
    ((null list) (error "CAN'T FIND INDEX"))
    ((eq index 0) (car list))
    (T (search-index (cdr list) (- index 1)))))
-
-
 

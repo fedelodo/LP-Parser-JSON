@@ -155,7 +155,7 @@ parse_digit(Digit) -->
 
 %% A valid digit is made by 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 valid_digit(Digit) :-
-    member(Digit, ['0','1','2','3','4','5','6','7','8','9','0','.']).
+    member(Digit, ['0','1','2','3','4','5','6','7','8','9','0','.','+','-']).
 
 %% Parse an empty string contained in ""
 parse_string("") -->

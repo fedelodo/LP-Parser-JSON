@@ -117,6 +117,11 @@ parse_value(Value) -->
     parse_number(Value),
     !.
 
+%% Value is a number
+parse_value(Value) -->
+    parse_boolean(Value),
+    !.
+
 %% Value is an object
 parse_value(Value) -->
     parse_object(Value),
@@ -156,6 +161,24 @@ parse_digit(Digit) -->
 %% A valid digit is made by 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 valid_digit(Digit) :-
     member(Digit, ['0','1','2','3','4','5','6','7','8','9','0','.','+','-']).
+
+%% Parse a boolean
+parse_boolean(true) -->
+    ['t'],
+    ['r'],
+    ['u'],
+    ['e'].
+
+parse_boolean(false) -->
+    ['f'],
+    ['a'],
+    ['l'],
+    ['s'],
+    ['e'].
+
+valid_boolean(Boolean) :-
+    string_lower(Boolean, "true");
+    string_lower(Boolean, "false").
 
 %% Parse an empty string contained in ""
 parse_string("") -->
@@ -322,6 +345,11 @@ json_reverse_array([X| Xs], JSONString, Result) :-
 json_reverse_element(X, X) :-
     number(X),
     !.
+
+%% Reverse boolean into a string
+json_reverse_element(true, "true") :- !.
+
+json_reverse_element(false, "false") :- !.
 
 %% Reverts nested objects
 json_reverse_element(X, Result) :-
